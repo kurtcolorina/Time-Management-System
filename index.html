@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Time Management System</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Time Management System</h1>
+        <div class="task-form">
+            <h2>Add/Edit Task</h2>
+            <label for="task-title">Title:</label>
+            <input type="text" id="task-title" placeholder="Task title">
+
+            <label for="task-desc">Description:</label>
+            <textarea id="task-desc" placeholder="Task description"></textarea>
+
+            <label for="task-priority">Priority:</label>
+            <select id="task-priority">
+                <option value="High">High</option>
+                <option value="Medium">Medium</option>
+                <option value="Low">Low</option>
+            </select>
+
+            <label for="task-day">Day:</label>
+            <select id="task-day">
+                <option value="Monday">Monday</option>
+                <option value="Tuesday">Tuesday</option>
+                <option value="Wednesday">Wednesday</option>
+                <option value="Thursday">Thursday</option>
+                <option value="Friday">Friday</option>
+                <option value="Saturday">Saturday</option>
+                <option value="Sunday">Sunday</option>
+            </select>
+
+            <label for="task-start">Start Time:</label>
+            <input type="time" id="task-start">
+
+            <label for="task-duration">Duration (minutes):</label>
+            <input type="number" id="task-duration" placeholder="Estimated time in minutes">
+
+            <button id="save-task-btn" onclick="addOrUpdateTask()">Save Task</button>
+        </div>
+
+        <div class="task-list">
+            <h2>Task List</h2>
+            <label for="view-day">View Tasks for Day:</label>
+            <select id="view-day" onchange="displayTasks()">
+                <option value="">All Days</option>
+                <option value="Monday">Monday</option>
+                <option value="Tuesday">Tuesday</option>
+                <option value="Wednesday">Wednesday</option>
+                <option value="Thursday">Thursday</option>
+                <option value="Friday">Friday</option>
+                <option value="Saturday">Saturday</option>
+                <option value="Sunday">Sunday</option>
+            </select>
+            <div id="tasks"></div>
+        </div>
+
+        <div class="summary">
+            <h2>Daily Summary</h2>
+            <div id="daily-summary"></div>
+            <h2>Weekly Overview</h2>
+            <div id="weekly-overview"></div>
+        </div>
+    </div>
+    <script>
+        let tasks = JSON.parse(localStorage.getItem('tasks')) || [];
+        let editTaskId = null;
+
+        function addOrUpdateTask() {
+            const title = document.getElementById('task-title').value.trim();
+            const description = document.getElementById('task-desc').value.trim();
+            const priority = document.getElementById('task-priority').value;
+            const day = document.getElementById('task-day').value;
+            const startTime = document.getElementById('task-start').value;
+            const duration = parseInt(document.getElementById('task-duration').value);
+
+            if (!title || !startTime || !duration) {
+                alert("Title, start time, and duration are required.");
+                return;
+            }
+
+            if (editTaskId) {
+                // Update existing task
+                const taskIndex = tasks.findIndex(task => task.id === editTaskId);
+                tasks[taskIndex] = { ...tasks[taskIndex], title, description, priority, day, startTime, duration };
+                editTaskId = null;
+                document.getElementById('save-task-btn').innerText = 'Save Task';
+            } else {
+                // Add new task
+                const task = { id: Date.now(), title, description, priority, day, startTime, duration, actualTime: 0 };
+                tasks.push(task);
+            }
+
+            saveTasks();
+            displayTasks();
+            clearForm();
+        }
+
+        function editTask(taskId) {
+            const task = tasks.find(task => task.id === taskId);
+
+            document.getElementById('task-title').value = task.title;
+            document.getElementById('task-desc').value = task.description;
+            document.getElementById('task-priority').value = task.priority;
+            document.getElementById('task-day').value = task.day;
+            document.getElementById('task-start').value = task.startTime;
+            document.getElementById('task-duration').value = task.duration;
+
+            editTaskId = taskId;
+            document.getElementById('save-task-btn').innerText = 'Update Task';
+        }
+
+        function deleteTask(taskId) {
+            tasks = tasks.filter(task => task.id !== taskId);
+            saveTasks();
+            displayTasks();
+        }
+
+        function saveTasks() {
+            localStorage.setItem('tasks', JSON.stringify(tasks));
+        }
+
+        function displayTasks() {
+            const viewDay = document.getElementById('view-day').value;
+            const taskContainer = document.getElementById('tasks');
+            taskContainer.innerHTML = '';
+
+            const filteredTasks = viewDay ? tasks.filter(task => task.day === viewDay) : tasks;
+
+            filteredTasks.forEach(task => {
+                const taskDiv = document.createElement('div');
+                taskDiv.className = `task-item ${task.priority.toLowerCase()}-priority`;
+                taskDiv.innerHTML = `
+                    <strong>${task.title}</strong> [${task.startTime} - ${addMinutes(task.startTime, task.duration)}]
+                    <p>${task.description}</p>
+                    <small>Priority: ${task.priority} | Day: ${task.day}</small>
+                    <div class="task-actions">
+                        <button onclick="editTask(${task.id})">Edit</button>
+                        <button onclick="deleteTask(${task.id})">Delete</button>
+                    </div>
+                `;
+                taskContainer.appendChild(taskDiv);
+            });
+        }
+
+        function addMinutes(time, minutes) {
+            let [hh, mm] = time.split(':').map(Number);
+            let date = new Date();
+            date.setHours(hh, mm + minutes);
+            return date.toTimeString().substring(0, 5);
+        }
+
+        function clearForm() {
+            document.getElementById('task-title').value = '';
+            document.getElementById('task-desc').value = '';
+            document.getElementById('task-priority').value = 'High';
+            document.getElementById('task-day').value = 'Monday';
+            document.getElementById('task-start').value = '';
+            document.getElementById('task-duration').value = '';
+        }
+
+        displayTasks();
+    </script>
+</body>
+</html>
